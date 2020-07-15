@@ -7,7 +7,7 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  job:
+  build:
     name: ${{ matrix.os }}-cmake-build
     runs-on: ${{ matrix.os }}
     strategy:
@@ -15,72 +15,72 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-latest ]
 
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v2.3.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.1
 
-    - name: Update Cmake
-      id: update_cmake
-      shell: cmake -P {0}
-      run: |
-        set(cmake_version $ENV{CMAKE_VERSION})
+      - name: Update Cmake
+        id: update_cmake
+        shell: cmake -P {0}
+        run: |
+          set(cmake_version $ENV{CMAKE_VERSION})
 
-        message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
+          message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
 
-        if("${{ runner.os }}" STREQUAL "Windows")
-          set(cmake_suffix "win64-x64.zip")
-          set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
-        elseif("${{ runner.os }}" STREQUAL "Linux")
-          set(cmake_suffix "Linux-x86_64.tar.gz")
-          set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
-        endif()
+          if("${{ runner.os }}" STREQUAL "Windows")
+            set(cmake_suffix "win64-x64.zip")
+            set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
+          elseif("${{ runner.os }}" STREQUAL "Linux")
+            set(cmake_suffix "Linux-x86_64.tar.gz")
+            set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
+          endif()
 
-        set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
-        file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
-        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
+          set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
+          file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
+          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
 
-        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
-        message("::set-output name=cmake_dir::${cmake_dir}")
+          file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
+          message("::set-output name=cmake_dir::${cmake_dir}")
 
-        if("${{ runner.os }}" STREQUAL "Linux")
+          if("${{ runner.os }}" STREQUAL "Linux")
+            execute_process(
+              COMMAND chmod +x ${cmake_dir}/cmake
+            )
+          endif()
+
+      - name: Configure
+        shell: cmake -P {0}
+        run: |
+          set(path_separator ":")
+          if("${{ runner.os }}" STREQUAL "Windows")
+            set(path_separator ";")
+          endif()
+          set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
+
           execute_process(
-            COMMAND chmod +x ${cmake_dir}/cmake
+            COMMAND ${{ steps.update_cmake.outputs.cmake_dir }}/cmake
+              -S .
+              -B build
+              -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
+            RESULT_VARIABLE result
           )
-        endif()
+          if(NOT result EQUAL 0)
+            message(FATAL_ERROR "Bad exit status")
+          endif()
 
-    - name: Configure
-      shell: cmake -P {0}
-      run: |
-        set(path_separator ":")
-        if("${{ runner.os }}" STREQUAL "Windows")
-          set(path_separator ";")
-        endif()
-        set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
+      - name: Build
+        shell: cmake -P {0}
+        run: |
+          set(path_separator ":")
+          if("${{ runner.os }}" STREQUAL "Windows")
+            set(path_separator ";")
+          endif()
+          set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
 
-        execute_process(
-          COMMAND ${{ steps.update_cmake.outputs.cmake_dir }}/cmake
-            -S .
-            -B build
-            -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
-          RESULT_VARIABLE result
-        )
-        if(NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-    - name: Build
-      shell: cmake -P {0}
-      run: |
-        set(path_separator ":")
-        if("${{ runner.os }}" STREQUAL "Windows")
-          set(path_separator ";")
-        endif()
-        set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
-
-        execute_process(
-          COMMAND ${{ steps.update_cmake.outputs.cmake_dir }}/cmake --build build
-          RESULT_VARIABLE result
-        )
-        if(NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
+          execute_process(
+            COMMAND ${{ steps.update_cmake.outputs.cmake_dir }}/cmake --build build
+            RESULT_VARIABLE result
+          )
+          if(NOT result EQUAL 0)
+            message(FATAL_ERROR "Bad exit status")
+          endif()
