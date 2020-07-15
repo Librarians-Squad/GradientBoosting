@@ -2,26 +2,7 @@
 #define GRADIENTBOOSTING_HEADER_HPP
 
 
-#include <utility>
 #include <functional>
-
-
-class Predicate {
-public:
-    explicit Predicate(std::function<bool(double)> func = nullptr,
-              int feature_idx = -1)
-    : function(std::move(func)),
-      feature_idx(feature_idx)
-    {}
-
-    bool operator()(const std::vector<double>& features) const {
-        return function(features[feature_idx]);
-    }
-
-private:
-    std::function<bool(double)> function;
-    int feature_idx;
-};
 
 
 class TreeNode {
@@ -40,15 +21,42 @@ protected:
 
 class InnerNode : public TreeNode {
 public:
-    InnerNode()
+    InnerNode(std::function<bool(double)>& predicate, int feature_idx)
     : TreeNode(false),
-      predicate(Predicate()),
+      predicate(predicate),
+      feature_idx(feature_idx),
       left_child(nullptr),
       right_child(nullptr)
     {}
 
+    [[nodiscard]] bool use_predicate(const std::vector<double>& sample) const {
+        return this->predicate(sample[this->feature_idx]);
+    }
+
+    // not sure, that we need this method
+    [[nodiscard]] int get_feature_idx() const {
+        return this->feature_idx;
+    }
+
+    [[nodiscard]] TreeNode* get_left() const {
+        return this->left_child;
+    }
+
+    [[nodiscard]] TreeNode* get_right() const {
+        return this->right_child;
+    }
+
+    void set_left(TreeNode* node) {
+        this->left_child = node;
+    }
+
+    void set_right(TreeNode* node) {
+        this->right_child = node;
+    }
+
 private:
-    Predicate predicate;
+    std::function<bool(double)> predicate;
+    int feature_idx;
     TreeNode* left_child;
     TreeNode* right_child;
 };
@@ -56,31 +64,56 @@ private:
 
 class LeafNode : public TreeNode {
 public:
-    LeafNode()
+    explicit LeafNode(int class_idx)
     : TreeNode(true),
-      value()
+      class_idx(class_idx)
     {}
 
+    [[nodiscard]] int get_class() const {
+        return this->class_idx;
+    }
+
 private:
-    std::string value;
+    int class_idx;
 };
 
 
 class DecisionTreeClassifier {
 public:
     explicit DecisionTreeClassifier() {
-        this->root = new InnerNode();
+        this->root = nullptr;
     }
 
     void fit(const std::vector<std::vector<double>>& x_train, const std::vector<double>& y_train) {
-        // ...
+        this->root = DecisionTreeClassifier::teach_node(x_train, y_train);
     }
 
-    int predict(int* question) {
-        // ...
+    int predict(const std::vector<double>& question) {
+        InnerNode* current_node = this->root;
+        while (true) {
+            if (current_node->use_predicate(question)) {
+                if (current_node->get_left()->is_leaf()) {
+                    return static_cast<LeafNode*>(current_node->get_left())->get_class();
+                } else {
+                    current_node = static_cast<InnerNode*>(current_node->get_left());
+                }
+            } else {
+                if (current_node->get_right()->is_leaf()) {
+                    return static_cast<LeafNode*>(current_node->get_right())->get_class();
+                } else {
+                    current_node = static_cast<InnerNode*>(current_node->get_right());
+                }
+            }
+        }
     }
-    int* predict(int** questions) {
-        // ...
+
+    std::vector<int>& predict(const std::vector<std::vector<double>>& questions) {
+        std::vector<int> answers{};
+        for (const auto& question : questions) {
+            int answer = this->predict(question);
+            answers.push_back(answer);
+        }
+        return answers;
     }
 
     void save_configuration(const std::string& filepath) {
@@ -93,6 +126,25 @@ public:
 
 private:
     InnerNode* root;
+
+    // recursive function to teach decision tree
+    static InnerNode* teach_node(const std::vector<std::vector<double>>& x_train,
+                    const std::vector<double>& y_train) {
+        /*** some computings ***/
+
+        InnerNode* node = new InnerNode(best_predicate, feature_idx);
+        if (/*** teaching break condition ***/) {
+            node->set_left(teach_node(left_x_train, left_y_train));
+            node->set_right(teach_node(right_x_train, right_y_train));
+        } else {
+            int left_class_idx = /*** some computings ***/;
+            int right_class_idx = /*** some computings ***/;
+
+            node->set_left(new LeafNode(left_class_idx))
+            node->set_right(new LeafNode(right_class_idx))
+        }
+        return node;
+    }
 };
 
 
