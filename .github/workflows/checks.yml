@@ -47,6 +47,8 @@ jobs:
         run: |
           pwd
           ls
+          cd tools/gate/
+          ls
 
       - name: Configure
         shell: cmake -P {0}
