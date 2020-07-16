@@ -84,13 +84,6 @@ jobs:
             message(FATAL_ERROR "Bad exit status")
           endif()
 
-      - name: Partisan
-        run: |
-          pwd
-          ls
-          ls build/
-          ls cmake/
-
       - name: Run tests
         shell: cmake -P {0}
         run: |
@@ -100,7 +93,7 @@ jobs:
           endif()
           set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
           execute_process(
-            COMMAND .${{ steps.update_cmake.outputs.cmake_dir }}/build/tests
+            COMMAND ./build/tests
             RESULT_VARIABLE result
           )
           if(NOT result EQUAL 0)
