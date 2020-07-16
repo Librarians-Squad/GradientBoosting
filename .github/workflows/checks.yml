@@ -24,9 +24,7 @@ jobs:
         shell: cmake -P {0}
         run: |
           set(cmake_version $ENV{CMAKE_VERSION})
-
           message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
-
           if("${{ runner.os }}" STREQUAL "Windows")
             set(cmake_suffix "win64-x64.zip")
             set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
@@ -34,19 +32,21 @@ jobs:
             set(cmake_suffix "Linux-x86_64.tar.gz")
             set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
           endif()
-
           set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
           file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
           execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
-
           file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
           message("::set-output name=cmake_dir::${cmake_dir}")
-
           if("${{ runner.os }}" STREQUAL "Linux")
             execute_process(
               COMMAND chmod +x ${cmake_dir}/cmake
             )
           endif()
+
+      - name: Partisan
+        run: |
+          pwd
+          ls
 
       - name: Configure
         shell: cmake -P {0}
@@ -56,7 +56,6 @@ jobs:
             set(path_separator ";")
           endif()
           set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
-
           execute_process(
             COMMAND ${{ steps.update_cmake.outputs.cmake_dir }}/cmake
               -S .
@@ -68,6 +67,7 @@ jobs:
             message(FATAL_ERROR "Bad exit status")
           endif()
 
+
       - name: Build
         shell: cmake -P {0}
         run: |
@@ -76,7 +76,6 @@ jobs:
             set(path_separator ";")
           endif()
           set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
-
           execute_process(
             COMMAND ${{ steps.update_cmake.outputs.cmake_dir }}/cmake --build build
             RESULT_VARIABLE result
