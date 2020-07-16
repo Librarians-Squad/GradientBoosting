@@ -85,29 +85,27 @@ public:
     }
 
     void fit(const std::vector<std::vector<double>>& x_train, const std::vector<double>& y_train) {
-        this->root = DecisionTreeClassifier::teach_node(x_train, y_train);
+        this->root = (InnerNode*)teach_node(x_train, y_train);
     }
 
     int predict(const std::vector<double>& question) {
-        InnerNode* current_node = this->root;
+        TreeNode* current_node = this->root;
         while (true) {
-            if (current_node->use_predicate(question)) {
-                if (current_node->get_left()->is_leaf()) {
-                    return static_cast<LeafNode*>(current_node->get_left())->get_class();
-                } else {
-                    current_node = static_cast<InnerNode*>(current_node->get_left());
-                }
+            if (current_node->is_leaf()) {
+                return ((LeafNode*)current_node)->get_class();
             } else {
-                if (current_node->get_right()->is_leaf()) {
-                    return static_cast<LeafNode*>(current_node->get_right())->get_class();
+                auto* node = (InnerNode*)current_node;
+
+                if (node->use_predicate(question)) {
+                    current_node = node->get_left();
                 } else {
-                    current_node = static_cast<InnerNode*>(current_node->get_right());
+                    current_node = node->get_right();
                 }
             }
         }
     }
 
-    std::vector<int>& predict(const std::vector<std::vector<double>>& questions) {
+    std::vector<int> predict(const std::vector<std::vector<double>>& questions) {
         std::vector<int> answers{};
         for (const auto& question : questions) {
             int answer = this->predict(question);
@@ -128,22 +126,28 @@ private:
     InnerNode* root;
 
     // recursive function to teach decision tree
-    static InnerNode* teach_node(const std::vector<std::vector<double>>& x_train,
+    static TreeNode* teach_node(const std::vector<std::vector<double>>& x_train,
                     const std::vector<double>& y_train) {
-        /*** some computings ***/
 
-        InnerNode* node = new InnerNode(best_predicate, feature_idx);
-        if (/*** teaching break condition ***/) {
+        /*** split test ***/
+
+        TreeNode* resulting_node = nullptr;
+
+        if (/*** we can split ***/) {
+            /*** find out best predicate and feature for next splitting ***/
+            /*** split matrix of samples to right matrix and left matrix ***/
+            InnerNode* node = new InnerNode(predicate, feature_idx);
+
             node->set_left(teach_node(left_x_train, left_y_train));
             node->set_right(teach_node(right_x_train, right_y_train));
-        } else {
-            int left_class_idx = /*** some computings ***/;
-            int right_class_idx = /*** some computings ***/;
 
-            node->set_left(new LeafNode(left_class_idx))
-            node->set_right(new LeafNode(right_class_idx))
+            resulting_node = node;
+        } else {
+            /*** find out leaf class and returns LeafNode ***/
+            resulting_node = new LeafNode(class_idx);
         }
-        return node;
+
+        return resulting_node;
     }
 };
 
