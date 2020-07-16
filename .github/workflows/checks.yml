@@ -86,10 +86,10 @@ jobs:
 
       - name: Partisan
         run: |
-        pwd
-        ls
-        ls build/
-        ls cmake/
+          pwd
+          ls
+          ls build/
+          ls cmake/
 
       - name: Run tests
         shell: cmake -P {0}
