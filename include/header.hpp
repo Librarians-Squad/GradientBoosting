@@ -84,7 +84,7 @@ public:
         this->root = nullptr;
     }
 
-    void fit(const std::vector<std::vector<double>>& x_train, const std::vector<double>& y_train) {
+    void fit(const std::vector<std::vector<double>>& x_train, const std::vector<int>& y_train) {
         this->root = (InnerNode*)teach_node(x_train, y_train);
     }
 
@@ -124,19 +124,36 @@ public:
 
 private:
     InnerNode* root;
+    // learning parameters
+//    double splitting_accuracy;  // the ratio of the most popular answer to the other
+//    int max_depth;
+//    int min_samples_leaf;
+
+
 
     // recursive function to teach decision tree
-    static TreeNode* teach_node(const std::vector<std::vector<double>>& x_train,
-                    const std::vector<double>& y_train) {
-
-        /*** split test ***/
+    static TreeNode* teach_node(const std::vector<std::vector<double>>& X_train,
+                                const std::vector<int>& y_train) {
 
         TreeNode* resulting_node = nullptr;
 
-        if (/*** we can split ***/) {
+        /*** splitting test ***/
+        if (splitting_condition(X_train, y_train)) {
             /*** find out best predicate and feature for next splitting ***/
+            std::function<bool(double)> predicate;
+            int feature_idx;
+            find_predicate_and_feature(X_train, y_train, predicate, feature_idx);
+
             /*** split matrix of samples to right matrix and left matrix ***/
-            InnerNode* node = new InnerNode(predicate, feature_idx);
+            auto* node = new InnerNode(predicate, feature_idx);
+
+            std::vector<std::vector<double>> left_x_train{};
+            std::vector<std::vector<double>> right_x_train{};
+            std::vector<int> left_y_train{};
+            std::vector<int> right_y_train{};
+
+            split_by_predicate(X_train, y_train, predicate, feature_idx,
+                            left_x_train, left_y_train, right_x_train, right_y_train);
 
             node->set_left(teach_node(left_x_train, left_y_train));
             node->set_right(teach_node(right_x_train, right_y_train));
@@ -144,10 +161,41 @@ private:
             resulting_node = node;
         } else {
             /*** find out leaf class and returns LeafNode ***/
+            int class_idx = find_out_leaf_class(...);
+
             resulting_node = new LeafNode(class_idx);
         }
 
         return resulting_node;
+    }
+
+    static void find_predicate_and_feature(const std::vector<std::vector<double>>& X, const std::vector<int>& y,
+                                           std::function<bool(double)>& predicate, int& feature_idx) {
+        // ...
+    }
+
+    static bool splitting_condition(const std::vector<std::vector<double>>& X_train,
+                                    const std::vector<int>& y_train) {
+        // ...
+    }
+
+    static void split_by_predicate(const std::vector<std::vector<double>>& X, const std::vector<int>& y,
+                                   std::function<bool(double)>& predicate, const int& feature_idx,
+                                   std::vector<std::vector<double>>& left_x, std::vector<int>& left_y,
+                                   std::vector<std::vector<double>>& right_x, std::vector<int>& right_y) {
+        for (int i = 0; i < X.size(); ++i) {
+            if (predicate(X[i][feature_idx])) {
+                left_x.push_back(X[i]);
+                left_y.push_back(y[i]);
+            } else {
+                right_x.push_back(X[i]);
+                right_y.push_back(y[i]);
+            }
+        }
+    }
+
+    static int find_out_leaf_class(...) {
+        // ...
     }
 };
 
