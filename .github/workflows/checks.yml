@@ -84,6 +84,13 @@ jobs:
             message(FATAL_ERROR "Bad exit status")
           endif()
 
+      - name: Partisan
+        run: |
+        pwd
+        ls
+        ls build/
+        ls cmake/
+
       - name: Run tests
         shell: cmake -P {0}
         run: |
