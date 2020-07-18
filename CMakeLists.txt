@@ -14,11 +14,11 @@ project(GradientBoosting)
 hunter_add_package(GTest)
 find_package(GTest CONFIG REQUIRED)
 
-add_library(target STATIC sources/source.cpp)
-target_include_directories(target PUBLIC include/)
+add_library(decision_tree STATIC sources/decision_tree.cpp)
+target_include_directories(decision_tree PUBLIC include/)
 
 add_executable(tests tests/test.cpp)
-target_link_libraries(tests GTest::gtest_main target)
+target_link_libraries(tests GTest::gtest_main decision_tree)
 
 enable_testing()
 add_test(NAME tests COMMAND tests)
