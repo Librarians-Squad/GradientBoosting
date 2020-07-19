@@ -1,30 +1,17 @@
 #ifndef GRADIENTBOOSTING_UTILITY_HPP
 #define GRADIENTBOOSTING_UTILITY_HPP
 
-#include <vector>
+#include <utility>
 
-template <typename RandIt>
-class Range {
-public:
-    Range(RandIt begin, RandIt end) :
-            start(begin), stop(end) {}
-
-    RandIt begin() { return start; }
-    RandIt end() { return stop; }
-
-    size_t size() const {
-        return std::distance(start, stop);
+// TODO(Mocurin): O(1)/O(N^m) space/time complexity
+template <typename RandIt1, typename RandIt2>
+void reorder(RandIt1 first1, RandIt1 last1, RandIt2 first2) {
+    size_t i = 0;
+    for (size_t j = 0; j < last1 - first1 - 1; ++j) {
+        i = *(first2 + j);
+        while (i < j) i = *(first2 + i);
+        std::iter_swap(first1 + i, first1 + j);
     }
-
-private:
-    RandIt start;
-    RandIt stop;
-};
-
-template <typename T>
-void reorder(const Range<std::vector<T>>& source,
-        const Range<std::vector<size_t>>& indices) {
-    // Reorder array according to indices
 }
 
 #endif //GRADIENTBOOSTING_UTILITY_HPP

@@ -37,11 +37,14 @@ private:
 
 struct LearningParameters {
     using DataMetric = std::function<bool(
-            const Range<SampleMatrix>&, const Range<ClassArray>&)>;
+            SampleMatrixIterator, SampleMatrixIterator,
+            ClassArrayIterator, ClassArrayIterator)>;
     using PredicateDecider = std::function<UnaryPredicateWrapper(
-            const Range<SampleMatrix>&, const Range<ClassArray>&)>;
+            SampleMatrixIterator, SampleMatrixIterator,
+            ClassArrayIterator, ClassArrayIterator)>;
     using ClassDecider = std::function<size_t(
-            const Range<SampleMatrix>&, const Range<ClassArray>&)>;
+            SampleMatrixIterator, SampleMatrixIterator,
+            ClassArrayIterator, ClassArrayIterator)>;
 
     //    double splitting_accuracy;
     //    int max_depth;
@@ -91,7 +94,7 @@ public:
 
     void fit(SampleMatrix& x_train, ClassArray& y_train) {
         if (root) return; // Tree is already trained
-    //        root = fit_individual(Range(x_train), Range(y_train));
+        root = fit_individual(x_train.begin(), x_train.end(), y_train.begin(), y_train.end());
     }
 
     int predict(const SampleArray& samples) {
@@ -113,27 +116,29 @@ private:
     TreeNode* root = nullptr;
     LearningParameters parameters;
 
-    TreeNode* fit_individual(Range<SampleMatrix> x_train, Range<ClassArray> y_train) {
-        if (!parameters.stop_condition(x_train, y_train))
-            return new LeafNode(parameters.compute_class(x_train, y_train));
-        auto* node = new InnerNode(parameters.compute_predicate(x_train, y_train));
+    [[nodiscard]] TreeNode* fit_individual(
+            SampleMatrixIterator x_begin, SampleMatrixIterator x_end,
+            ClassArrayIterator y_begin, ClassArrayIterator y_end) const {
+        if (!parameters.stop_condition(x_begin, x_end, y_begin, y_end)) {
+            return new LeafNode(parameters.compute_class(x_begin, x_end, y_begin, y_end));
+        }
+        auto* node = new InnerNode(parameters.compute_predicate(x_begin, x_end, y_begin, y_end));
 
-        std::vector<size_t> indices(x_train.size());
+        std::vector<size_t> indices(x_end - x_begin);
         std::iota(indices.begin(), indices.end(), 0);
 
-//        // Basically an np.argpartition
-//        auto it = std::partition(indices.begin(), indices.end(),
-//                [x_train, node] (auto i) { return node->pred(*(x_train.begin() + i)); });
-//        auto idx = it - indices.begin();
-//
-//
-//        reorder(x_train, Range(indices));
-//        reorder(y_train, Range(indices));
-//
-//        node->left = fit_individual(Range(x_train.begin(), x_train.begin() + idx),
-//                                    Range(y_train.begin(), y_train.begin() + idx));
-//        node->left = fit_individual(Range(x_train.begin() + idx, x_train.end()),
-//                                    Range(y_train.begin() + idx, y_train.end()));
+        // Basically an np.argpartition()
+        auto it = std::partition(indices.begin(), indices.end(),
+                [x_begin, node] (auto i) { return node->pred(*(x_begin + i)); });
+        auto idx = it - indices.begin();
+
+        reorder(x_begin, x_end, indices.begin());
+        reorder(y_begin, y_end, indices.begin());
+
+        node->left = fit_individual(x_begin, x_begin + idx, y_begin, y_begin + idx);
+        node->right = fit_individual(x_begin + idx, x_end, y_begin + idx, y_end);
+
+        return node;
     }
 };
 
