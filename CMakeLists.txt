@@ -14,11 +14,11 @@ project(GradientBoosting)
 hunter_add_package(GTest)
 find_package(GTest CONFIG REQUIRED)
 
-add_library(target STATIC ${CMAKE_CURRENT_SOURCE_DIR}/sources/source.cpp)
-target_include_directories(target PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/)
+add_library(decision_tree STATIC ${CMAKE_CURRENT_SOURCE_DIR}/sources/decision_tree.cpp)
+target_include_directories(decision_tree PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
 add_executable(tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.cpp)
-target_link_libraries(tests GTest::gtest_main target)
+target_link_libraries(tests GTest::gtest_main decision_tree)
 
 enable_testing()
 add_test(NAME tests COMMAND tests)
